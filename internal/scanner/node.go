@@ -3,13 +3,13 @@ package scanner
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 )
 
 // FileNode represents a file or directory in the scanned tree.
 type FileNode struct {
 	Name      string
-	Path      string
 	Size      int64 // Total size including children
 	IsDir     bool
 	Children  []*FileNode
@@ -18,6 +18,27 @@ type FileNode struct {
 	DirCount  int64
 	Err       error
 	mu        sync.Mutex // protects Children append during concurrent scan
+}
+
+// Path computes the full path by walking up the parent chain.
+// Only call this when you actually need the path (sidebar display, etc).
+func (n *FileNode) Path() string {
+	if n.Parent == nil {
+		return n.Name
+	}
+	// Count depth to pre-allocate
+	depth := 0
+	for p := n; p != nil; p = p.Parent {
+		depth++
+	}
+	parts := make([]string, depth)
+	node := n
+	for i := depth - 1; i >= 0; i-- {
+		parts[i] = node.Name
+		node = node.Parent
+	}
+	// The root name is an absolute path like "/home/user", so Join handles it.
+	return strings.Join(parts, "/")
 }
 
 // addChild safely appends a child during concurrent scanning.

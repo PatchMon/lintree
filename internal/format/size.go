@@ -2,6 +2,26 @@ package format
 
 import "fmt"
 
+// Count formats an integer with thousand separators: 14832 → "14,832".
+func Count(n int64) string {
+	if n < 0 {
+		return "-" + Count(-n)
+	}
+	s := fmt.Sprintf("%d", n)
+	if len(s) <= 3 {
+		return s
+	}
+	// Insert commas from the right
+	out := make([]byte, 0, len(s)+(len(s)-1)/3)
+	for i, c := range s {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			out = append(out, ',')
+		}
+		out = append(out, byte(c))
+	}
+	return string(out)
+}
+
 // Size formats a byte count as a human-readable string.
 func Size(bytes int64) string {
 	const (

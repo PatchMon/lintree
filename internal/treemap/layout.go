@@ -24,7 +24,7 @@ func Layout(nodes []*scanner.FileNode, bounds Rect, depth int) []Cell {
 		return nil
 	}
 
-	// Filter to nodes with size > 0
+	// Filter to nodes with size > 0, reusing a stack-local slice for small cases
 	filtered := make([]*scanner.FileNode, 0, len(nodes))
 	for _, n := range nodes {
 		if n.Size > 0 {
@@ -32,32 +32,38 @@ func Layout(nodes []*scanner.FileNode, bounds Rect, depth int) []Cell {
 		}
 	}
 
-	return squarify(filtered, totalSize, bounds, depth)
+	// Pre-allocate cells slice with estimated capacity
+	cells := make([]Cell, 0, len(filtered))
+	return squarify(filtered, totalSize, bounds, depth, cells)
 }
 
-func squarify(nodes []*scanner.FileNode, totalSize int64, bounds Rect, depth int) []Cell {
-	var cells []Cell
+func squarify(nodes []*scanner.FileNode, totalSize int64, bounds Rect, depth int, cells []Cell) []Cell {
 	remaining := bounds
 	remainingSize := totalSize
 
+	// Reusable row buffer to avoid allocations per row
+	row := make([]rowItem, 0, len(nodes))
+	candidateRow := make([]rowItem, 0, len(nodes))
+
 	i := 0
 	for i < len(nodes) && remaining.W > 0 && remaining.H > 0 {
-		// Build a row
-		row := []rowItem{{node: nodes[i], size: nodes[i].Size}}
+		// Build a row - reuse the row slice
+		row = row[:0]
+		row = append(row, rowItem{node: nodes[i], size: nodes[i].Size})
 		rowSize := nodes[i].Size
 		i++
 
 		for i < len(nodes) {
 			candidate := nodes[i]
-			// Clone row before append to avoid corrupting the backing array
-			newRow := make([]rowItem, len(row)+1)
-			copy(newRow, row)
-			newRow[len(row)] = rowItem{node: candidate, size: candidate.Size}
+			// Build candidate row without allocating: reuse candidateRow
+			candidateRow = candidateRow[:0]
+			candidateRow = append(candidateRow, row...)
+			candidateRow = append(candidateRow, rowItem{node: candidate, size: candidate.Size})
 			newRowSize := rowSize + candidate.Size
 
 			if worstRatio(row, rowSize, remaining, remainingSize) >=
-				worstRatio(newRow, newRowSize, remaining, remainingSize) {
-				row = newRow
+				worstRatio(candidateRow, newRowSize, remaining, remainingSize) {
+				row = append(row, rowItem{node: candidate, size: candidate.Size})
 				rowSize = newRowSize
 				i++
 			} else {
@@ -66,8 +72,8 @@ func squarify(nodes []*scanner.FileNode, totalSize int64, bounds Rect, depth int
 		}
 
 		// Lay out this row
-		rowCells, consumed := layoutRow(row, rowSize, remaining, remainingSize, depth)
-		cells = append(cells, rowCells...)
+		var consumed int
+		cells, consumed = layoutRow(row, rowSize, remaining, remainingSize, depth, cells)
 
 		// Shrink remaining area
 		effectiveW := float64(remaining.W) * CellAspect
@@ -135,9 +141,10 @@ func worstRatio(row []rowItem, rowSize int64, bounds Rect, totalSize int64) floa
 	return worst
 }
 
-func layoutRow(row []rowItem, rowSize int64, bounds Rect, totalSize int64, depth int) ([]Cell, int) {
+// layoutRow appends cells to the provided slice and returns it along with consumed dimension.
+func layoutRow(row []rowItem, rowSize int64, bounds Rect, totalSize int64, depth int, cells []Cell) ([]Cell, int) {
 	if len(row) == 0 || totalSize == 0 {
-		return nil, 0
+		return cells, 0
 	}
 
 	rowFrac := float64(rowSize) / float64(totalSize)
@@ -145,8 +152,6 @@ func layoutRow(row []rowItem, rowSize int64, bounds Rect, totalSize int64, depth
 	effectiveW := float64(bounds.W) * CellAspect
 	effectiveH := float64(bounds.H)
 	horizontal := effectiveW > effectiveH // split direction
-
-	var cells []Cell
 
 	if horizontal {
 		// Row occupies a vertical strip on the left

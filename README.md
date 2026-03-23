@@ -61,15 +61,19 @@ lintree              # Scan / (entire root filesystem)
 lintree /home        # Scan a specific directory
 lintree .            # Scan current directory
 lintree ~/Downloads  # Scan your downloads
+lintree -fast /      # Fast scan (more workers, higher CPU)
 ```
 
 ### Flags
 
 ```
 lintree [path]       Scan and visualize disk usage (default: /)
+lintree -fast [path] Fast scan mode (more workers, higher CPU usage)
 lintree -v           Show version and check for updates
 lintree -h           Show help
 ```
+
+By default lintree uses 2 scanner workers to keep CPU usage low. The `-fast` flag bumps this to 8 workers, which scans faster but uses more CPU. Use `-fast` when you want speed and don't mind the CPU spike.
 
 ## Controls
 

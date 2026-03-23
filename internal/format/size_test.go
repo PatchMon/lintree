@@ -44,3 +44,28 @@ func TestSize(t *testing.T) {
 		})
 	}
 }
+
+func TestCount(t *testing.T) {
+	tests := []struct {
+		name string
+		n    int64
+		want string
+	}{
+		{"zero", 0, "0"},
+		{"small", 42, "42"},
+		{"hundreds", 999, "999"},
+		{"thousands", 1000, "1,000"},
+		{"large", 14832, "14,832"},
+		{"millions", 1234567, "1,234,567"},
+		{"negative", -14832, "-14,832"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Count(tt.n)
+			if got != tt.want {
+				t.Errorf("Count(%d) = %q, want %q", tt.n, got, tt.want)
+			}
+		})
+	}
+}

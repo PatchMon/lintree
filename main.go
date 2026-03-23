@@ -5,17 +5,33 @@ import (
 	"lintree/internal/ui"
 	"lintree/internal/version"
 	"os"
+	"runtime/debug"
 )
 
 func main() {
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
+	// Soft memory limit. Too low = GC thrashes CPU. Too high = unbounded growth.
+	debug.SetMemoryLimit(1024 * 1024 * 1024) // 1GB
+
+	fast := false
+	var args []string
+
+	// Parse flags
+	for _, arg := range os.Args[1:] {
+		switch arg {
+		case "-fast", "--fast":
+			fast = true
+		default:
+			args = append(args, arg)
+		}
+	}
+
+	if len(args) > 0 {
+		switch args[0] {
 		case "-v", "--version", "version":
 			fmt.Print(version.Full())
-			// Check for updates
 			if latest, available, err := version.CheckForUpdate(); err == nil {
 				if available {
-					fmt.Printf("\n  Update available: %s → %s\n", version.Version, latest)
+					fmt.Printf("\n  Update available: %s -> %s\n", version.Version, latest)
 					fmt.Printf("  Run: %s\n", version.UpdateCommand())
 				} else {
 					fmt.Println("\n  You're on the latest version.")
@@ -29,8 +45,8 @@ func main() {
 	}
 
 	root := "/"
-	if len(os.Args) > 1 {
-		root = os.Args[1]
+	if len(args) > 0 {
+		root = args[0]
 	}
 
 	info, err := os.Stat(root)
@@ -43,7 +59,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := ui.Run(root); err != nil {
+	if err := ui.Run(root, fast); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		os.Exit(1)
 	}
@@ -54,16 +70,17 @@ func printUsage() {
 
 Usage:
   lintree [path]       Scan and visualize disk usage (default: /)
+  lintree -fast [path] Fast scan mode (more workers, higher CPU usage)
   lintree -v           Show version and check for updates
   lintree -h           Show this help
 
 Controls:
-  ↑↓ / jk              Navigate cells
-  ←→ / hl              Spatial movement
-  Enter / l             Drill into directory
-  Backspace / h         Go back
-  ?                     Help overlay
-  q / Ctrl+C            Quit
+  arrows / jk          Navigate cells
+  arrows / hl          Spatial movement
+  Enter / l            Drill into directory
+  Backspace / h        Go back
+  ?                    Help overlay
+  q / Ctrl+C           Quit
 
 Website: https://lintree.sh
 `)
