@@ -13,11 +13,11 @@ func Count(n int64) string {
 	}
 	// Insert commas from the right
 	out := make([]byte, 0, len(s)+(len(s)-1)/3)
-	for i, c := range s {
+	for i := range s {
 		if i > 0 && (len(s)-i)%3 == 0 {
 			out = append(out, ',')
 		}
-		out = append(out, byte(c))
+		out = append(out, s[i])
 	}
 	return string(out)
 }

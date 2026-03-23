@@ -57,7 +57,7 @@ func CheckForUpdate() (string, bool, error) {
 	if err != nil {
 		return "", false, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", false, fmt.Errorf("GitHub API returned %d", resp.StatusCode)

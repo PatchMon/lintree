@@ -366,7 +366,7 @@ func (a *App) drawScanProgress() {
 
 	// Line 3: stats
 	statsLine := fmt.Sprintf("Dirs: %s  Files: %s  Size: %s",
-		format.Count(int64(a.progress.DirsScanned)), format.Count(int64(a.progress.FilesFound)),
+		format.Count(a.progress.DirsScanned), format.Count(a.progress.FilesFound),
 		format.Size(a.progress.BytesFound))
 	statsX := (a.width - utf8.RuneCountInString(statsLine)) / 2
 	if statsX < 2 {
@@ -471,7 +471,7 @@ func (a *App) drawBreadcrumb() {
 }
 
 // collapseBreadcrumb collapses middle segments with ellipsis when too long.
-func collapseBreadcrumb(parts []string, sep string, sepLen int, maxWidth int) []string {
+func collapseBreadcrumb(parts []string, _ string, sepLen int, maxWidth int) []string {
 	// Measure full width
 	fullWidth := 0
 	for i, p := range parts {
@@ -515,11 +515,6 @@ func collapseBreadcrumb(parts []string, sep string, sepLen int, maxWidth int) []
 func (a *App) drawTreemap() {
 	if len(a.cells) == 0 {
 		return
-	}
-
-	tmW := a.width - sidebarWidth
-	if tmW < 10 {
-		tmW = a.width
 	}
 
 	// Find max size for relative brightness
@@ -842,7 +837,7 @@ func (a *App) drawHelp() {
 	for _, sec := range sections {
 		totalLines += 1 + len(sec.entries) + 1 // section title + entries + blank
 	}
-	totalLines += 1 // footer "Press any key to close"
+	totalLines += 1        // footer "Press any key to close"
 	boxH := totalLines + 2 // +2 for top/bottom border
 	boxW := innerWidth + 4 // +4 for borders + padding
 
@@ -943,15 +938,6 @@ func abs(a int) int {
 	return a
 }
 
-// truncateRunes truncates a string to at most n runes, safely handling multi-byte UTF-8.
-func truncateRunes(s string, n int) string {
-	runes := []rune(s)
-	if len(runes) <= n {
-		return s
-	}
-	return string(runes[:n])
-}
-
 // truncateWithEllipsis truncates a string to at most maxWidth runes,
 // appending a single ellipsis character (U+2026) when truncated.
 func truncateWithEllipsis(s string, maxWidth int) string {
@@ -964,5 +950,3 @@ func truncateWithEllipsis(s string, maxWidth int) string {
 	}
 	return string(runes[:maxWidth-1]) + "\u2026"
 }
-
-

@@ -24,17 +24,17 @@ const (
 )
 
 var categoryColors = map[FileCategory]tcell.Color{
-	CatDirectory: tcell.NewRGBColor(86, 182, 194),   // Cyan
-	CatCode:      tcell.NewRGBColor(91, 141, 239),    // Blue
-	CatWeb:       tcell.NewRGBColor(45, 184, 153),    // Teal-green
-	CatDocument:  tcell.NewRGBColor(152, 195, 121),   // Green
-	CatImage:     tcell.NewRGBColor(229, 192, 123),   // Yellow
-	CatVideo:     tcell.NewRGBColor(198, 120, 221),   // Magenta
-	CatAudio:     tcell.NewRGBColor(232, 105, 154),   // Magenta-pink
-	CatArchive:   tcell.NewRGBColor(224, 108, 117),   // Red
-	CatData:      tcell.NewRGBColor(209, 154, 102),   // Orange
-	CatBinary:    tcell.NewRGBColor(211, 95, 85),     // Bright red
-	CatOther:     tcell.NewRGBColor(92, 99, 112),     // Gray
+	CatDirectory: tcell.NewRGBColor(86, 182, 194),  // Cyan
+	CatCode:      tcell.NewRGBColor(91, 141, 239),  // Blue
+	CatWeb:       tcell.NewRGBColor(45, 184, 153),  // Teal-green
+	CatDocument:  tcell.NewRGBColor(152, 195, 121), // Green
+	CatImage:     tcell.NewRGBColor(229, 192, 123), // Yellow
+	CatVideo:     tcell.NewRGBColor(198, 120, 221), // Magenta
+	CatAudio:     tcell.NewRGBColor(232, 105, 154), // Magenta-pink
+	CatArchive:   tcell.NewRGBColor(224, 108, 117), // Red
+	CatData:      tcell.NewRGBColor(209, 154, 102), // Orange
+	CatBinary:    tcell.NewRGBColor(211, 95, 85),   // Bright red
+	CatOther:     tcell.NewRGBColor(92, 99, 112),   // Gray
 }
 
 var categoryLabels = map[FileCategory]string{

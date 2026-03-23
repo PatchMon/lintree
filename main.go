@@ -49,7 +49,7 @@ func main() {
 		root = args[0]
 	}
 
-	info, err := os.Stat(root)
+	info, err := os.Stat(root) //nolint:gosec // user-provided path is intentional
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		os.Exit(1)
