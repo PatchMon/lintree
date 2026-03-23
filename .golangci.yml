@@ -1,0 +1,54 @@
+run:
+  timeout: 5m
+  go: "1.26"
+
+linters:
+  enable:
+    # Default-tier linters
+    - errcheck
+    - staticcheck
+    - unused
+    - ineffassign
+    - govet
+    - gosimple
+    - typecheck
+
+    # Formatting
+    - gofmt
+    - goimports
+
+    # Code quality
+    - misspell
+    - unconvert
+    - unparam
+
+    # Security
+    - gosec
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment # too noisy for most projects
+  gosec:
+    excludes:
+      - G104 # duplicates errcheck
+  goimports:
+    local-prefixes: lintree
+  misspell:
+    locale: US
+
+issues:
+  exclude-rules:
+    # Test files: relax some linters that produce noise in tests
+    - path: _test\.go
+      linters:
+        - errcheck
+        - unparam
+        - gosec
+
+  # Show all issues from a linter, not just the default max
+  max-issues-per-linter: 0
+  max-same-issues: 0

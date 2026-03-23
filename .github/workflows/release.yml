@@ -1,0 +1,138 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}/${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            ext: ""
+            compress: tar
+          - os: linux
+            arch: arm64
+            ext: ""
+            compress: tar
+          - os: darwin
+            arch: amd64
+            ext: ""
+            compress: tar
+          - os: darwin
+            arch: arm64
+            ext: ""
+            compress: tar
+          - os: windows
+            arch: amd64
+            ext: ".exe"
+            compress: zip
+          - os: windows
+            arch: arm64
+            ext: ".exe"
+            compress: zip
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: Derive version metadata
+        id: meta
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "date=${DATE}" >> "$GITHUB_OUTPUT"
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: "0"
+        run: |
+          BINARY="lintree-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}"
+          LDFLAGS="-s -w"
+          LDFLAGS="${LDFLAGS} -X lintree/internal/version.Version=${{ steps.meta.outputs.tag }}"
+          LDFLAGS="${LDFLAGS} -X lintree/internal/version.Commit=${GITHUB_SHA}"
+          LDFLAGS="${LDFLAGS} -X lintree/internal/version.Date=${{ steps.meta.outputs.date }}"
+
+          go build -trimpath -ldflags "${LDFLAGS}" -o "${BINARY}" .
+          echo "BINARY=${BINARY}" >> "$GITHUB_ENV"
+
+      - name: Compress (tar.gz)
+        if: matrix.compress == 'tar'
+        run: |
+          ARCHIVE="lintree-${{ matrix.os }}-${{ matrix.arch }}.tar.gz"
+          tar -czf "${ARCHIVE}" "${BINARY}"
+          echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
+
+      - name: Compress (zip)
+        if: matrix.compress == 'zip'
+        run: |
+          ARCHIVE="lintree-${{ matrix.os }}-${{ matrix.arch }}.zip"
+          zip "${ARCHIVE}" "${BINARY}"
+          echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
+
+      - name: Generate checksum
+        run: |
+          sha256sum "${ARCHIVE}" > "${ARCHIVE}.sha256"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            ${{ env.ARCHIVE }}
+            ${{ env.ARCHIVE }}.sha256
+          retention-days: 1
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: dist
+
+      - name: Combine checksums
+        run: |
+          cd dist
+          cat *.sha256 | sort > checksums.txt
+          rm -f *.sha256
+          echo "--- checksums.txt ---"
+          cat checksums.txt
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
