@@ -6,8 +6,8 @@
   <p align="center">
     <a href="https://github.com/PatchMon/lintree/releases"><img src="https://img.shields.io/github/v/release/PatchMon/lintree?style=flat-square&color=00b4d8" alt="Release"></a>
     <a href="https://github.com/PatchMon/lintree/actions"><img src="https://img.shields.io/github/actions/workflow/status/PatchMon/lintree/ci.yml?style=flat-square" alt="CI"></a>
-    <a href="https://goreportcard.com/report/github.com/PatchMon/lintree"><img src="https://goreportcard.com/badge/github.com/PatchMon/lintree?style=flat-square" alt="Go Report Card"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
+    <a href="https://buymeacoffee.com/iby___"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=flat-square&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"></a>
   </p>
 </p>
 
@@ -31,7 +31,7 @@ lintree scans your filesystem and renders an interactive treemap right in the te
 ### Quick install (recommended)
 
 ```bash
-curl -fsSL https://get.lintree.sh | sh
+curl -fsSL https://raw.githubusercontent.com/PatchMon/lintree/main/install.sh | sh
 ```
 
 Detects your OS and architecture, downloads the latest release, and installs to `/usr/local/bin`.
@@ -111,7 +111,7 @@ lintree -v
 Update to the latest:
 
 ```bash
-curl -fsSL https://get.lintree.sh | sh
+curl -fsSL https://raw.githubusercontent.com/PatchMon/lintree/main/install.sh | sh
 ```
 
 ## Development
