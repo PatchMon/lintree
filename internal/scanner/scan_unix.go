@@ -38,7 +38,7 @@ func processDir(ctx context.Context, node *FileNode, dirPath string, st *scanSta
 		processDirFallback(ctx, node, dirPath, entries, st, pathBuf)
 		return
 	}
-	defer unix.Close(dirfd)
+	defer func() { _ = unix.Close(dirfd) }()
 
 	// Pre-allocate children slice to avoid repeated growth.
 	if cap(node.Children) == 0 {

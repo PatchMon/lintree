@@ -15,7 +15,7 @@ type FileNode struct {
 	Parent    *FileNode
 	FileCount int64
 	DirCount  int64
-	Err error
+	Err       error
 }
 
 // Path computes the full path by walking up the parent chain.
