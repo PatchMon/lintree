@@ -62,7 +62,7 @@ make build
 ## Usage
 
 ```bash
-lintree              # Scan / (entire root filesystem)
+lintree              # Scan . (current directory)
 lintree /home        # Scan a specific directory
 lintree .            # Scan current directory
 lintree ~/Downloads  # Scan your downloads
