@@ -44,7 +44,7 @@ func main() {
 		}
 	}
 
-	root := "/"
+	root := "."
 	if len(args) > 0 {
 		root = args[0]
 	}
@@ -69,7 +69,7 @@ func printUsage() {
 	fmt.Print(`lintree - Terminal disk usage visualizer
 
 Usage:
-  lintree [path]       Scan and visualize disk usage (default: /)
+  lintree [path]       Scan and visualize disk usage (default: current directory)
   lintree -fast [path] Fast scan mode (more workers, higher CPU usage)
   lintree -v           Show version and check for updates
   lintree -h           Show this help
