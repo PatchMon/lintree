@@ -2,8 +2,8 @@ package scanner
 
 import (
 	"context"
-	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -28,7 +28,16 @@ type work struct {
 	path string // full path for this node (computed at enqueue time, not stored on node)
 }
 
-// Scan walks the filesystem tree rooted at root using a bounded worker pool.
+// scanState holds the shared mutable state for a scan.
+type scanState struct {
+	workCh      chan work
+	wg          sync.WaitGroup
+	dirsScanned atomic.Int64
+	filesFound  atomic.Int64
+	bytesFound  atomic.Int64
+	currentPath atomic.Value
+}
+
 // Scan walks the filesystem tree rooted at root using a bounded worker pool.
 // Set fast=true for more workers (higher CPU, faster scan).
 func Scan(ctx context.Context, root string, fast bool) (<-chan Progress, <-chan *FileNode, <-chan error) {
@@ -52,9 +61,8 @@ func Scan(ctx context.Context, root string, fast bool) (<-chan Progress, <-chan 
 			IsDir: true,
 		}
 
-		var dirsScanned, filesFound, bytesFound atomic.Int64
-		var currentPath atomic.Value
-		currentPath.Store(absRoot)
+		st := &scanState{}
+		st.currentPath.Store(absRoot)
 
 		// Progress reporter
 		done := make(chan struct{})
@@ -64,12 +72,12 @@ func Scan(ctx context.Context, root string, fast bool) (<-chan Progress, <-chan 
 			for {
 				select {
 				case <-ticker.C:
-					cp, _ := currentPath.Load().(string)
+					cp, _ := st.currentPath.Load().(string)
 					select {
 					case progCh <- Progress{
-						DirsScanned: dirsScanned.Load(),
-						FilesFound:  filesFound.Load(),
-						BytesFound:  bytesFound.Load(),
+						DirsScanned: st.dirsScanned.Load(),
+						FilesFound:  st.filesFound.Load(),
+						BytesFound:  st.bytesFound.Load(),
 						CurrentPath: cp,
 					}:
 					default:
@@ -82,30 +90,37 @@ func Scan(ctx context.Context, root string, fast bool) (<-chan Progress, <-chan 
 			}
 		}()
 
-		// Default: 2 workers (low CPU). Fast mode: 8 workers (saturate disk I/O).
-		workers := 2
+		// Scale workers to CPU count. Fast mode doubles it (saturate disk I/O on SSDs).
+		workers := runtime.GOMAXPROCS(0)
 		if fast {
-			workers = 8
+			workers *= 2
 		}
-		workCh := make(chan work, 64)
-		var wg sync.WaitGroup
+		if workers < 4 {
+			workers = 4
+		}
+		if workers > 32 {
+			workers = 32
+		}
+		st.workCh = make(chan work, 256)
 
 		// Start fixed worker goroutines
 		for range workers {
 			go func() {
-				for w := range workCh {
-					processDir(ctx, w.node, w.path, workCh, &wg, &dirsScanned, &filesFound, &bytesFound, &currentPath)
+				// Each worker gets a reusable path buffer to avoid allocations.
+				pathBuf := make([]byte, 0, 256)
+				for w := range st.workCh {
+					processDir(ctx, w.node, w.path, st, pathBuf)
 				}
 			}()
 		}
 
 		// Seed with root
-		wg.Add(1)
-		workCh <- work{node: rootNode, path: absRoot}
+		st.wg.Add(1)
+		st.workCh <- work{node: rootNode, path: absRoot}
 
 		// Wait for all work to finish, then close the channel to stop workers
-		wg.Wait()
-		close(workCh)
+		st.wg.Wait()
+		close(st.workCh)
 		close(done)
 
 		if ctx.Err() != nil {
@@ -119,75 +134,4 @@ func Scan(ctx context.Context, root string, fast bool) (<-chan Progress, <-chan 
 	}()
 
 	return progCh, resultCh, errCh
-}
-
-func processDir(ctx context.Context, node *FileNode, dirPath string, workCh chan work, wg *sync.WaitGroup, dirsScanned, filesFound, bytesFound *atomic.Int64, currentPath *atomic.Value) {
-	defer wg.Done()
-
-	select {
-	case <-ctx.Done():
-		return
-	default:
-	}
-
-	if skipDirs[dirPath] {
-		return
-	}
-
-	entries, err := os.ReadDir(dirPath)
-	if err != nil {
-		node.Err = err
-		return
-	}
-
-	dirsScanned.Add(1)
-	currentPath.Store(dirPath)
-
-	// Pre-allocate children slice to avoid repeated growth
-	node.mu.Lock()
-	if cap(node.Children) == 0 {
-		node.Children = make([]*FileNode, 0, len(entries))
-	}
-	node.mu.Unlock()
-
-	for _, entry := range entries {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		if entry.Type()&os.ModeSymlink != 0 {
-			continue
-		}
-
-		childPath := filepath.Join(dirPath, entry.Name())
-		child := &FileNode{
-			Name:   entry.Name(),
-			IsDir:  entry.IsDir(),
-			Parent: node,
-		}
-
-		if entry.IsDir() {
-			node.addChild(child)
-			// Try to queue work; if channel is full, process inline to avoid deadlock
-			wg.Add(1)
-			select {
-			case workCh <- work{node: child, path: childPath}:
-				// queued successfully
-			default:
-				// channel full, process in this goroutine to prevent deadlock
-				processDir(ctx, child, childPath, workCh, wg, dirsScanned, filesFound, bytesFound, currentPath)
-			}
-		} else {
-			if info, err := entry.Info(); err == nil {
-				child.Size = fileSize(info)
-			} else {
-				child.Err = err
-			}
-			filesFound.Add(1)
-			bytesFound.Add(child.Size)
-			node.addChild(child)
-		}
-	}
 }

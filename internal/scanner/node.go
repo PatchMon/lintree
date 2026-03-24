@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 )
 
 // FileNode represents a file or directory in the scanned tree.
@@ -16,8 +15,7 @@ type FileNode struct {
 	Parent    *FileNode
 	FileCount int64
 	DirCount  int64
-	Err       error
-	mu        sync.Mutex // protects Children append during concurrent scan
+	Err error
 }
 
 // Path computes the full path by walking up the parent chain.
@@ -41,11 +39,10 @@ func (n *FileNode) Path() string {
 	return strings.Join(parts, "/")
 }
 
-// addChild safely appends a child during concurrent scanning.
+// addChild appends a child node. Safe because each directory is processed
+// by exactly one goroutine.
 func (n *FileNode) addChild(child *FileNode) {
-	n.mu.Lock()
 	n.Children = append(n.Children, child)
-	n.mu.Unlock()
 }
 
 // computeSizes walks bottom-up to compute aggregate Size/FileCount/DirCount.
