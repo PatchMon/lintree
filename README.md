@@ -13,6 +13,10 @@
 
 ---
 
+<p align="center">
+  <img src="lintree_screenshot.png" alt="lintree terminal disk usage visualization" width="800">
+</p>
+
 lintree scans your filesystem and renders an interactive treemap right in the terminal. See which files and folders are eating your disk space without leaving the command line.
 
 ## Features

@@ -49,6 +49,7 @@ banner() {
     printf "  ╭─────────────────────────────────╮\n"
     printf "  │                                 │\n"
     printf "  │        lintree installer        │\n"
+    printf "  │        https://lintree.sh       │\n"
     printf "  │                                 │\n"
     printf "  ╰─────────────────────────────────╯\n"
     printf "${RESET}"
