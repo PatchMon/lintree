@@ -13,23 +13,23 @@ func TestSize(t *testing.T) {
 		{"one byte", 1, "1 B"},
 		{"1023 bytes", 1023, "1023 B"},
 
-		// KB range
-		{"exactly 1 KB", 1024, "1.0 KB"},
-		{"1.5 KB", 1536, "1.5 KB"},
-		{"just under 1 MB", 1048575, "1024.0 KB"},
+		// KiB range
+		{"exactly 1 KiB", 1024, "1.0 KiB"},
+		{"1.5 KiB", 1536, "1.5 KiB"},
+		{"just under 1 MiB", 1048575, "1024.0 KiB"},
 
-		// MB range
-		{"exactly 1 MB", 1048576, "1.0 MB"},
-		{"1.5 MB", 1048576 + 524288, "1.5 MB"},
-		{"999 MB", 999 * 1048576, "999.0 MB"},
+		// MiB range
+		{"exactly 1 MiB", 1048576, "1.0 MiB"},
+		{"1.5 MiB", 1048576 + 524288, "1.5 MiB"},
+		{"999 MiB", 999 * 1048576, "999.0 MiB"},
 
-		// GB range
-		{"exactly 1 GB", 1 << 30, "1.0 GB"},
-		{"2.5 GB", int64(2.5 * float64(1<<30)), "2.5 GB"},
+		// GiB range
+		{"exactly 1 GiB", 1 << 30, "1.0 GiB"},
+		{"2.5 GiB", int64(2.5 * float64(1<<30)), "2.5 GiB"},
 
-		// TB range
-		{"exactly 1 TB", 1 << 40, "1.0 TB"},
-		{"3.7 TB", 4068193022771, "3.7 TB"},
+		// TiB range
+		{"exactly 1 TiB", 1 << 40, "1.0 TiB"},
+		{"3.7 TiB", 4068193022771, "3.7 TiB"},
 
 		// Negative value (falls through to default)
 		{"negative bytes", -100, "-100 B"},
